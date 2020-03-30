@@ -90,7 +90,11 @@ def main():
             print(e)
             print('(E_E) : timing error... ')
             play_result(False)
-        time.sleep(1)
+        try:
+            time.sleep(1)
+        except KeyboardInterrupt as e:
+            print('writing to file...')
+            return
 
 if __name__ == '__main__':
     courses, roster = ros.load_risyu(RISYU_FILE) 
