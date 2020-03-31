@@ -2,7 +2,11 @@
 
 ## 設定手順
 
+1. [Anaconda](https://www.anaconda.com/distribution/) をインストール
+1. `conda create -n nfc python=3.7` で仮想環境 `nfc` を作成
+1. `conda activate nfc`
 1. NFC カードリーダーを PC に接続 (SONY PaSoRi RC-S380/P で稼働確認済み)
-1. Python をインストール (Python 3.7 で稼働確認済み)
 1. [nfcpy](https://nfcpy.readthedocs.io/en/latest/topics/get-started.html) の手順に従って、ドライバーと nfcpy をインストール
+1. `pip install pygame`
+1. `conda install spyder` (統合開発環境 Spyder を使うわけではないが、Qt 関連のライブラリを後顧の憂いなくインストールするため)
 1. 同じディレクトリに履修者情報ファイル (risyu.csv) を置く
