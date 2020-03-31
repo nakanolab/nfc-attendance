@@ -49,9 +49,7 @@ def NFC_detected(tag):
     bc = nfc.tag.tt3.BlockCode( BLOCK, service=0)
     data = tag.read_without_encryption([sc], [bc])
     student_id = get_student_id(data)
-    # print(tag)
-    # print('str:', data)
-    # print('hex:', hexlify(data))
+
     ok = False
     if student_id not in registered_students:
         print('unregistered student: %s' % student_id)
@@ -66,6 +64,10 @@ def NFC_detected(tag):
     dt_now = datetime.datetime.now()
     dtstr=dt_now.strftime('%H:%M:%S\n')
     ui.l1_change(dtstr+student_class_no+'\n'+student_name) # Qtラベルの変更
+    N=len(registered_students)
+    n=len(present)
+    ui.b1.setText('受付終了 (%d/%d)' % (n,N))
+    
         
 def NFC_Thread():
     time.sleep(1)
@@ -78,12 +80,7 @@ def NFC_Thread():
             print(e)
             print('(E_E) : timing error... ')
             play_result(False)
-        try:
-            time.sleep(1)
-        except KeyboardInterrupt as e:
-            print('writing to file...')
-            return 
-        time.sleep(.5)
+        time.sleep(1)
     
 class GUI(QWidget):
     stat='IDLE'
@@ -126,8 +123,6 @@ class GUI(QWidget):
                 print('...bye....')
                 exit()
         self.stat = 'RUNNING'
-        self.b1.setText('受付終了')
-        self.b1.setStyleSheet('background-color: maroon; color: white; font-size: 32pt')
         idx=self.cb1.currentIndex() # 現在のコンボボックスの選択番号
         self.cb1.setStyleSheet('background-color: gray; color: white; font-size: 24pt')
         self.cb1.setEnabled(False)
@@ -139,6 +134,11 @@ class GUI(QWidget):
         for manage_num, student_id in enumerate(registered_students,1):
               student_class_no, student_name = registered_students[student_id]
               print(f'  {manage_num} {student_id} {student_class_no} {student_name}')
+        #ボタンラベル変更
+        N=len(registered_students)
+        self.b1.setText('受付終了 (%d/%d)' % (0,N))
+        self.b1.setStyleSheet('background-color: maroon; color: white; font-size: 32pt')
+        
          # NFCカードリーダスレッド開始
         th_nfc=threading.Thread(target=NFC_Thread)    
         th_nfc.setDaemon(True) 
