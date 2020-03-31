@@ -4,28 +4,24 @@ NOTE: Pygame
  python3 -m pip install -U pygame --user
 '''
 
+import os
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
+
 import pygame.mixer
 import nfc
 from binascii import hexlify
 import time
-import os
-import platform
 import roster as ros
 
 SYS_CODE = 0x93B1
 SERVICE   = 64
 BLOCK = 0
-RISYU_FILE ='/tmp/risyu-2020.csv'
-
-# 効果音ファイルの生成
-if platform.system() == 'Linux':
-    os.system('sox -D -G -n -c 1 /tmp/in_time.ogg synth .04 pluck 880')
-    os.system('sox -D -G -n -c 1 /tmp/no_in_time.ogg synth .02 pluck 220 delay .1 repeat 1')
+RISYU_FILE ='risyu-2020.csv'
 
 # 効果音のロード
 pygame.mixer.init()
-snd00=pygame.mixer.Sound("/tmp/in_time.ogg")
-snd01=pygame.mixer.Sound("/tmp/no_in_time.ogg")
+snd00=pygame.mixer.Sound('in_time.wav')
+snd01=pygame.mixer.Sound('not_in_time.wav')
 
 def play_result(ok):
     if ok:
@@ -49,7 +45,7 @@ def on_connect(tag):
     data = tag.read_without_encryption([sc], [bc])
     student_id = get_student_id(data)
     # print(tag)
-    print('str:', data)
+    # print('str:', data)
     # print('hex:', hexlify(data))
     ok = False
     if student_id not in registered_students:
@@ -82,6 +78,9 @@ def main():
     for manage_num, student_id in enumerate(registered_students,1):
           student_class_no, student_name = registered_students[student_id]
           print(f'  {manage_num} {student_id} {student_class_no} {student_name}')
+    print('========================================') 
+    print('   カードをかざして下さい')
+    print('----------------------------------------') 
     while True:
         try:
             with nfc.ContactlessFrontend('usb') as clf:
