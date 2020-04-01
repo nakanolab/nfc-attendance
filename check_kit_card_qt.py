@@ -14,9 +14,10 @@ os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import platform
 import pygame.mixer
 import sys
-from qtpy.QtGui import *
-from qtpy.QtCore import *
-from qtpy.QtWidgets import *
+from qtpy.QtCore import Qt
+from qtpy.QtGui import QFont
+from qtpy.QtWidgets import QApplication, QComboBox, QLabel, QPushButton
+from qtpy.QtWidgets import QVBoxLayout, QWidget
 import threading
 import time
 import roster as ros
