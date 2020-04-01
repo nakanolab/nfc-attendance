@@ -76,7 +76,7 @@ class GUI(QWidget):
  
     def activated(self, text):
         idx = self.cb1.currentIndex()  # 現在のコンボボックスの選択番号
-        print("%d %s" % (idx, text))
+        print('%d %s' % (idx, text))
                    
     def b1_callback(self):
         if self.stat != 'IDLE':
@@ -97,7 +97,8 @@ class GUI(QWidget):
               print(f'  {i} {student_id} {student_class_no} {student_name}')
         # ボタンラベル変更
         num_students = len(self.roster.students)
-        self.b1.setText('受付終了 (%d/%d)' % (0, num_students))
+        num_present = len(self.roster.present)
+        self.b1.setText('受付終了 (%d/%d)' % (num_present, num_students))
         self.b1.setStyleSheet('background-color: maroon;'
                               'color: white; font-size: 32pt')
         

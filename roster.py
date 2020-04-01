@@ -2,6 +2,7 @@ from collections import defaultdict
 import csv
 import datetime
 import logging
+import os.path
 import string
 
 RISYU_FILE = 'risyu.csv'
@@ -13,9 +14,15 @@ class Roster:
         self.present = set()
 
     def set_course_code(self, course_code):
+        student_ids = replay_log(course_code)
         setup_logging(course_code)
         self.logger = logging.getLogger()
         self.course_code = course_code
+        for student_id in student_ids:
+            self.present.add(student_id)
+            student_class_no, student_name = self.students[student_id]
+            self.logger.info('[log replay] added %s %s %s from log',
+                             student_id, student_class_no, student_name)
 
     @property
     def students(self):  # 該当クラスの学生
@@ -34,10 +41,6 @@ class Roster:
             self.logger.info('added %s %s %s',
                              student_id, student_class_no, student_name)
             return True, f'{student_class_no}\n{student_name}'
-
-    def replay_log(self):
-        # TODO: return a list of student IDs who checked in
-        return []
 
     def report_absent_students(self):
         # TODO: log absent students
@@ -67,6 +70,17 @@ def load_risyu(filename):
 def get_log_filename(course_code):
     date = datetime.date.today().strftime('%Y-%m-%d')
     return f'log/attendance-{course_code}-{date}.log'
+
+def replay_log(course_code):
+    filename = get_log_filename(course_code)
+    student_ids = []
+    if os.path.isfile(filename):
+        with open(filename) as f:
+            for line in f:
+                fields = line.split()
+                if len(fields) > 5 and fields[4] == 'added':
+                    student_ids.append(fields[5])
+    return student_ids
 
 def setup_logging(course_code):
     format_ = '%(asctime)s %(name)-8s %(levelname)-8s %(message)s'
