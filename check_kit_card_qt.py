@@ -20,48 +20,30 @@ from qtpy.QtWidgets import QApplication, QComboBox, QLabel, QPushButton
 from qtpy.QtWidgets import QVBoxLayout, QWidget
 import threading
 import time
-import roster as ros
+import roster
 import datetime
 import nfc
  
 SYS_CODE = 0x93B1
 SERVICE   = 64
 BLOCK = 0
-RISYU_FILE ='risyu-2020.csv'
+RISYU_FILE ='risyu.csv'
 
-SUCCESS = 0
-FAILURE = 1
+SUCCESS = True
+FAILURE = False
 
-def get_student_id(data):
+def get_student_id(tag):
+    idm, pmm = tag.polling(system_code=SYS_CODE)
+    tag.idm, tag.pmm, tag.sys = idm, pmm, SYS_CODE
+    sc = nfc.tag.tt3.ServiceCode(SERVICE, 0x0b)
+    bc = nfc.tag.tt3.BlockCode(BLOCK, service=0)
+    data = tag.read_without_encryption([sc], [bc])
     return data.decode('utf-8').lstrip('0').rstrip()[:-2]
 
 def NFC_detected(tag):
-    idm, pmm = tag.polling(system_code=SYS_CODE)
-    tag.idm, tag.pmm, tag.sys = idm, pmm, SYS_CODE
-    sc = nfc.tag.tt3.ServiceCode( SERVICE, 0x0b)  
-    bc = nfc.tag.tt3.BlockCode( BLOCK, service=0)
-    data = tag.read_without_encryption([sc], [bc])
-    student_id = get_student_id(data)
-
-    if student_id not in registered_students:
-        print('unregistered student: %s' % student_id)
-        ui.buzzer.ring(FAILURE)
-    elif student_id in present:
-        print('already checked in')
-        ui.buzzer.ring(FAILURE)
-    else:
-        print('adding student: %s' % student_id)
-        present.add(student_id)
-        ui.buzzer.ring(SUCCESS)
-    student_class_no, student_name = registered_students[student_id]
-    dt_now = datetime.datetime.now()
-    dtstr=dt_now.strftime('%H:%M:%S\n')
-    ui.l1_change(dtstr+student_class_no+'\n'+student_name) # Qtラベルの変更
-    N=len(registered_students)
-    n=len(present)
-    ui.b1.setText('受付終了 (%d/%d)' % (n,N))
+    student_id = get_student_id(tag)
+    ui.check_in(student_id)
     
-        
 def NFC_Thread():
     time.sleep(1)
     while True:
@@ -70,11 +52,28 @@ def NFC_Thread():
             with nfc.ContactlessFrontend('usb') as clf:
                 clf.connect(rdwr={'on-connect': NFC_detected})
         except Exception as e:
-            print(e)
-            print('(E_E) : timing error... ')
+            print(str(e))
             ui.buzzer.ring(FAILURE)
         time.sleep(1)
-    
+
+
+class Roster:
+    def __init__(self):
+        self.courses, self.all_students = roster.load_risyu(RISYU_FILE)
+        self.students = {}  # 該当クラスの学生
+        self.present = set()
+
+    def check_in(self, student_id):
+        if student_id not in self.students:
+            return FAILURE, f'未登録の学生\n{student_id}'
+        elif student_id in self.present:
+            return FAILURE, f'チェックイン済み\n{student_id}'
+        else:
+            self.present.add(student_id)
+            student_class_no, student_name = self.students[student_id]
+            return SUCCESS, f'{student_class_no}\n{student_name}'
+
+
 class GUI(QWidget):
     def __init__(self, parent=None):
         super(GUI, self).__init__(parent)       
@@ -82,11 +81,16 @@ class GUI(QWidget):
         self.setWindowTitle('KIT-Card Reader')
         self.setFont(QFont("Helvetica", 24))
         
+        # 名簿をロード
+        self.roster = Roster()
+
         # 空の縦レイアウトを作る
         self.mylayout = QVBoxLayout()
         self.setLayout(self.mylayout)
         
         # コンボボックス
+        cbox_labels = [f'{course_id} {course_name}' for course_id, course_name
+                       in self.roster.courses.items()]
         self.cb1 = QComboBox(self)
         self.cb1.addItems(cbox_labels)
         self.cb1.activated[str].connect(self.activated)
@@ -113,7 +117,6 @@ class GUI(QWidget):
         print("%d %s" % (idx,str0))
                    
     def b1_callback(self):
-        global registered_students
         if self.stat !='IDLE':
                 print('...bye....')
                 exit()
@@ -121,17 +124,17 @@ class GUI(QWidget):
         idx=self.cb1.currentIndex() # 現在のコンボボックスの選択番号
         self.cb1.setStyleSheet('background-color: gray; color: white; font-size: 24pt')
         self.cb1.setEnabled(False)
-        course_code=list(courses.keys())[idx]
-        registered_students = roster[course_code]
+        course_code=list(self.roster.courses.keys())[idx]
+        self.roster.students = self.roster.all_students[course_code]
         print('========================================') 
-        print(courses[course_code]);
+        print(self.roster.courses[course_code]);
         print('----------------------------------------') 
-        for manage_num, student_id in enumerate(registered_students,1):
-              student_class_no, student_name = registered_students[student_id]
+        for manage_num, student_id in enumerate(self.roster.students,1):
+              student_class_no, student_name = self.roster.students[student_id]
               print(f'  {manage_num} {student_id} {student_class_no} {student_name}')
         #ボタンラベル変更
-        N=len(registered_students)
-        self.b1.setText('受付終了 (%d/%d)' % (0,N))
+        num_students = len(self.roster.students)
+        self.b1.setText('受付終了 (%d/%d)' % (0, num_students))
         self.b1.setStyleSheet('background-color: maroon; color: white; font-size: 32pt')
         
          # NFCカードリーダスレッド開始
@@ -141,7 +144,21 @@ class GUI(QWidget):
  
     def l1_change(self,txt):
         self.l1.setText(txt)
- 
+
+    def check_in(self, student_id):
+        ok, msg = self.roster.check_in(student_id)
+        if ok:
+            timestamp = datetime.datetime.now().strftime('%H:%M:%S')
+            self.l1_change(f'{timestamp}\n{msg}') # Qtラベルの変更
+            num_students = len(self.roster.students)
+            num_present = len(self.roster.present)
+            self.b1.setText('受付終了 (%d/%d)' % (num_present, num_students))
+            self.buzzer.ring(SUCCESS)
+        else:
+            self.l1_change(msg)
+            self.buzzer.ring(FAILURE)
+
+
 class Buzzer:
     def __init__(self):
         # 効果音のロード
@@ -156,10 +173,6 @@ class Buzzer:
 
 
 if __name__ == '__main__':
-    courses, roster = ros.load_risyu(RISYU_FILE) 
-    cbox_labels=[x+' '+y for (x,y) in courses.items()]
-    present = set()
-            
     # ウィンドウ準備
     app = QApplication(sys.argv)
     ui = GUI()
