@@ -10,3 +10,4 @@
 1. `pip install pygame`
 1. `conda install spyder` (統合開発環境 Spyder を使うわけではないが、Qt 関連のライブラリを後顧の憂いなくインストールするため)
 1. 同じディレクトリに履修者情報ファイル (risyu.csv) を置く
+1. `log` という名のサブディレクトリを作成する
