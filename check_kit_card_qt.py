@@ -16,27 +16,9 @@ import roster
 SYS_CODE = 0x93B1
 SERVICE = 64
 BLOCK = 0
-RISYU_FILE = 'risyu.csv'
 
 SUCCESS = True
 FAILURE = False
-
-
-class Roster:
-    def __init__(self):
-        self.courses, self.all_students = roster.load_risyu(RISYU_FILE)
-        self.students = {}  # 該当クラスの学生
-        self.present = set()
-
-    def check_in(self, student_id):
-        if student_id not in self.students:
-            return FAILURE, f'未登録の学生\n{student_id}'
-        elif student_id in self.present:
-            return FAILURE, f'チェックイン済み\n{student_id}'
-        else:
-            self.present.add(student_id)
-            student_class_no, student_name = self.students[student_id]
-            return SUCCESS, f'{student_class_no}\n{student_name}'
 
 
 class Buzzer:
@@ -60,14 +42,15 @@ class GUI(QWidget):
         self.setFont(QFont('Helvetica', 24))
         
         # 名簿をロード
-        self.roster = Roster()
+        self.roster = roster.Roster()
 
         # 空の縦レイアウトを作る
         self.mylayout = QVBoxLayout()
         self.setLayout(self.mylayout)
         
         # コンボボックス
-        cbox_labels = [f'{course_id} {course_name}' for course_id, course_name
+        cbox_labels = [f'{course_code} {course_name}'
+                       for course_code, course_name
                        in self.roster.courses.items()]
         self.cb1 = QComboBox(self)
         self.cb1.addItems(cbox_labels)
@@ -105,7 +88,7 @@ class GUI(QWidget):
                                'color: white; font-size: 24pt')
         self.cb1.setEnabled(False)
         course_code = list(self.roster.courses.keys())[idx]
-        self.roster.students = self.roster.all_students[course_code]
+        self.roster.set_course_code(course_code)
         print('========================================') 
         print(self.roster.courses[course_code])
         print('----------------------------------------') 

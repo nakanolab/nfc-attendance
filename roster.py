@@ -2,6 +2,32 @@ from collections import defaultdict
 import csv
 import string
 
+RISYU_FILE = 'risyu.csv'
+
+
+class Roster:
+    def __init__(self):
+        self.courses, self.all_students = load_risyu(RISYU_FILE)
+        self.present = set()
+
+    def set_course_code(self, course_code):
+        self.course_code = course_code
+
+    @property
+    def students(self):  # 該当クラスの学生
+        return self.all_students[self.course_code]
+
+    def check_in(self, student_id):
+        if student_id not in self.students:
+            return False, f'未登録の学生\n{student_id}'
+        elif student_id in self.present:
+            return False, f'チェックイン済み\n{student_id}'
+        else:
+            self.present.add(student_id)
+            student_class_no, student_name = self.students[student_id]
+            return True, f'{student_class_no}\n{student_name}'
+
+
 def load_risyu(filename):
     index = {c: i for i, c in enumerate(string.ascii_uppercase)}
     courses = {}
