@@ -28,16 +28,8 @@ SERVICE   = 64
 BLOCK = 0
 RISYU_FILE ='risyu-2020.csv'
 
-def play_result(ok):
-    if ok:
-        play_sound(snd00)
-    else:
-        play_sound(snd01)
-    
-def play_sound( snd_obj ):
-    snd_obj.play()
-    while pygame.mixer.get_busy():
-        time.sleep(0.1)
+SUCCESS = 0
+FAILURE = 1
 
 def get_student_id(data):
     return data.decode('utf-8').lstrip('0').rstrip()[:-2]
@@ -50,16 +42,16 @@ def NFC_detected(tag):
     data = tag.read_without_encryption([sc], [bc])
     student_id = get_student_id(data)
 
-    ok = False
     if student_id not in registered_students:
         print('unregistered student: %s' % student_id)
+        ui.buzzer.ring(FAILURE)
     elif student_id in present:
         print('already checked in')
+        ui.buzzer.ring(FAILURE)
     else:
         print('adding student: %s' % student_id)
         present.add(student_id)
-        ok = True
-    play_result(ok)
+        ui.buzzer.ring(SUCCESS)
     student_class_no, student_name = registered_students[student_id]
     dt_now = datetime.datetime.now()
     dtstr=dt_now.strftime('%H:%M:%S\n')
@@ -79,7 +71,7 @@ def NFC_Thread():
         except Exception as e:
             print(e)
             print('(E_E) : timing error... ')
-            play_result(False)
+            ui.buzzer.ring(FAILURE)
         time.sleep(1)
     
 class GUI(QWidget):
@@ -112,6 +104,9 @@ class GUI(QWidget):
         self.b1.setStyleSheet('background-color: darkblue; color: white; font-size: 32pt')
         self.b1.clicked.connect(self.b1_callback)        
         self.mylayout.addWidget(self.b1)
+
+        # ブザー
+        self.buzzer = Buzzer()
  
     def activated(self, str0):
         idx=self.cb1.currentIndex() # 現在のコンボボックスの選択番号
@@ -147,17 +142,24 @@ class GUI(QWidget):
     def l1_change(self,txt):
         self.l1.setText(txt)
  
-        
+class Buzzer:
+    def __init__(self):
+        # 効果音のロード
+        pygame.mixer.init()
+        self.sound = {SUCCESS: pygame.mixer.Sound('sound/in_time.wav'),
+                      FAILURE: pygame.mixer.Sound('sound/not_in_time.wav')}
+    
+    def ring(self, status):
+        self.sound[status].play()
+        while pygame.mixer.get_busy():
+            time.sleep(0.1)
+
+
 if __name__ == '__main__':
     courses, roster = ros.load_risyu(RISYU_FILE) 
     cbox_labels=[x+' '+y for (x,y) in courses.items()]
     present = set()
             
-    # 効果音のロード
-    pygame.mixer.init()
-    snd00=pygame.mixer.Sound("in_time.wav")
-    snd01=pygame.mixer.Sound("not_in_time.wav")
-    
     # ウィンドウ準備
     app = QApplication(sys.argv)
     ui = GUI()
