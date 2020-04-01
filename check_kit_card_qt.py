@@ -80,6 +80,7 @@ class GUI(QWidget):
                    
     def b1_callback(self):
         if self.stat != 'IDLE':
+            self.roster.report_absent_students()
             print('...bye....')
             exit()
         self.stat = 'RUNNING'

@@ -43,8 +43,11 @@ class Roster:
             return True, f'{student_class_no}\n{student_name}'
 
     def report_absent_students(self):
-        # TODO: log absent students
-        pass
+        for student_id in self.students:
+            if student_id not in self.present:
+                student_class_no, student_name = self.students[student_id]
+                self.logger.warning('absent: %s %s %s',
+                                    student_id, student_class_no, student_name)
 
 
 def load_risyu(filename):
