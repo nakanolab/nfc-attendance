@@ -21,11 +21,11 @@ class Roster:
         for student_id in student_ids:
             self.present.add(student_id)
             student_class_no, student_name = self.students[student_id]
-            self.logger.info('[log replay] added %s %s %s from log',
+            self.logger.info('[log replay] added %s %s %s',
                              student_id, student_class_no, student_name)
 
     @property
-    def students(self):  # 該当クラスの学生
+    def students(self):  # 該当コースの履修生
         return self.all_students[self.course_code]
 
     def check_in(self, student_id):
@@ -98,7 +98,7 @@ def setup_logging(course_code):
     logging.getLogger('nfc.clf').setLevel(logging.WARNING)  # to silence NFC log
 
 def dump():
-    courses, roster = load_risyu('risyu.csv')
+    courses, roster = load_risyu(RISYU_FILE)
     for course_code, course_name in courses.items():
         print(f'{course_code}: {course_name}')
         for student_id in roster[course_code]:

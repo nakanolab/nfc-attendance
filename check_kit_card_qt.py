@@ -126,8 +126,7 @@ class GUI(QWidget):
 
 
 def get_student_id(tag):
-    idm, pmm = tag.polling(system_code=SYS_CODE)
-    tag.idm, tag.pmm, tag.sys = idm, pmm, SYS_CODE
+    tag.polling(system_code=SYS_CODE)
     sc = nfc.tag.tt3.ServiceCode(SERVICE, 0x0b)
     bc = nfc.tag.tt3.BlockCode(BLOCK, service=0)
     data = tag.read_without_encryption([sc], [bc])
@@ -154,7 +153,7 @@ if __name__ == '__main__':
     # ウィンドウ準備
     app = QApplication(sys.argv)
     ui = GUI()
-    ui.setWindowFlags(Qt.CustomizeWindowHint|Qt.WindowTitleHint)
+    ui.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowTitleHint)
     ui.show()
     
     # Windowイベント受付開始 
