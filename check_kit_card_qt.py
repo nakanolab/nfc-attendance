@@ -76,9 +76,7 @@ def NFC_Thread():
         time.sleep(1)
     
 class GUI(QWidget):
-    stat='IDLE'
     def __init__(self, parent=None):
-        
         super(GUI, self).__init__(parent)       
         self.resize(600,500)
         self.setWindowTitle('KIT-Card Reader')
@@ -95,7 +93,8 @@ class GUI(QWidget):
         self.mylayout.addWidget(self.cb1)        
         
         # ラベル
-        self.l1 = QLabel('IDLE')
+        self.stat = 'IDLE'
+        self.l1 = QLabel(self.stat)
         self.l1.setAlignment(Qt.AlignCenter)
         self.l1.setStyleSheet('color: black; font-size: 64pt')
         self.mylayout.addWidget(self.l1)
