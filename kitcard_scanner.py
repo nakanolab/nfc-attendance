@@ -2,6 +2,7 @@ import os
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
  
 import datetime
+import logging
 import threading
 import time
 import sys
@@ -86,7 +87,6 @@ class GUI(QWidget):
     def b1_callback(self):
         if self.stat != 'IDLE':
             self.roster.report_absent_students()
-            print('...bye....')
             exit()
         self.stat = 'RUNNING'
         idx = self.cb1.currentIndex()  # 現在のコンボボックスの選択番号
@@ -95,12 +95,6 @@ class GUI(QWidget):
         self.cb1.setEnabled(False)
         course_code = list(self.roster.courses.keys())[idx]
         self.roster.set_course_code(course_code)
-        print('========================================') 
-        print(self.roster.courses[course_code])
-        print('----------------------------------------') 
-        for i, student_id in enumerate(self.roster.students, 1):
-              student_class_no, student_name = self.roster.students[student_id]
-              print(f'  {i} {student_id} {student_class_no} {student_name}')
         # ボタンラベル変更
         num_students = len(self.roster.students)
         num_present = len(self.roster.present)
@@ -163,7 +157,7 @@ def nfc_thread():
             with nfc.ContactlessFrontend('usb') as clf:
                 clf.connect(rdwr={'on-connect': nfc_detected})
         except Exception as e:
-            print(str(e))
+            logging.error(str(e))
             ui.buzzer.ring(FAILURE)
         ui.blocked = False
 

@@ -1,3 +1,4 @@
+from collections import Counter
 from collections import defaultdict
 import csv
 import datetime
@@ -18,6 +19,14 @@ class Roster:
         setup_logging(course_code)
         self.logger = logging.getLogger()
         self.course_code = course_code
+        classes = []
+        for student_class_no, _ in self.students.values():
+            classes.append(student_class_no[:student_class_no.index('-')])
+        class_count = Counter(classes)
+        self.logger.info('========= クラス人数 =========')
+        self.logger.info(', '.join(f'{class_} ({count})' for class_, count
+                                   in class_count.most_common()))
+        # replay log file
         for student_id in student_ids:
             self.present.add(student_id)
             student_class_no, student_name = self.students[student_id]
@@ -44,6 +53,7 @@ class Roster:
             return True, f'{student_class_no}\n{student_name}'
 
     def report_absent_students(self):
+        self.logger.info('======== 欠席者リスト ========')
         for student_id in self.students:
             if student_id not in self.present:
                 student_class_no, student_name = self.students[student_id]
