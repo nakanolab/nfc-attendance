@@ -96,9 +96,7 @@ class GUI(QWidget):
         course_code = list(self.roster.courses.keys())[idx]
         self.roster.set_course_code(course_code)
         # ボタンラベル変更
-        num_students = len(self.roster.students)
-        num_present = len(self.roster.present)
-        self.b1.setText('受付終了 (%d/%d)' % (num_present, num_students))
+        self.update_button_label()
         self.b1.setStyleSheet('background-color: maroon;'
                               'color: white; font-size: 32pt')
         
@@ -110,6 +108,11 @@ class GUI(QWidget):
     def l1_change(self, text):
         self.l1.setText(text)
 
+    def update_button_label(self):
+        num_students = len(self.roster.students)
+        num_present = len(self.roster.present)
+        self.b1.setText('受付終了 (%d/%d)' % (num_present, num_students))
+
     def check_in(self, student_id):
         ok, msg = self.roster.check_in(student_id)
         if self.last_student_id == student_id:
@@ -118,9 +121,7 @@ class GUI(QWidget):
         if ok:
             timestamp = datetime.datetime.now().strftime('%H:%M:%S')
             self.l1_change(f'{timestamp}\n{msg}')
-            num_students = len(self.roster.students)
-            num_present = len(self.roster.present)
-            self.b1.setText('受付終了 (%d/%d)' % (num_present, num_students))
+            self.update_button_label()
             self.buzzer.ring(SUCCESS)
         else:
             self.l1_change(msg)
