@@ -25,8 +25,10 @@ DELAY = 5  # 2以上を指定(5: 500ミリ秒でREADYに)
 
 class Buzzer:
     def __init__(self):
-        # 効果音のロード
+        # 効果音のバッファサイズ変更（再生時のディレイを抑制）
+        pygame.mixer.pre_init(22050, -16, 2, 512)
         pygame.mixer.init()
+        # 効果音のロード
         self.sound = {SUCCESS: pygame.mixer.Sound('sound/in_time.wav'),
                       FAILURE: pygame.mixer.Sound('sound/not_in_time.wav')}
 
