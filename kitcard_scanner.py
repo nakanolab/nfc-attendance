@@ -78,9 +78,9 @@ class GUI(QWidget):
         self.timer.setSingleShot(False)
         self.timer.setInterval(100)
         self.timer.timeout.connect(self.on_timer)
-        self.cnt = DELAY
+        self.wait = DELAY
         self.blocked = False
-        self.last_student_id = ''
+        self.last_student_id = None
         self.timer.start()
                    
     def b1_callback(self):
@@ -135,14 +135,12 @@ class GUI(QWidget):
     def on_timer(self):
         if self.blocked == False:
             self.blocked = True
-            self.cnt = DELAY
-        elif self.cnt == 0:
-                return
-        else:
-            self.cnt = self.cnt - 1
-            if self.cnt == 0:
+            self.wait = DELAY
+        elif self.wait > 0:
+            self.wait -= 1
+            if self.wait == 0:
                 self.l1_change('READY')  # カードが見えないときはREADYに強制
-                self.last_student_id = ''
+                self.last_student_id = None
 
 
 def get_student_id(tag):
