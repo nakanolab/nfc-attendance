@@ -6,7 +6,7 @@ import threading
 import time
 import sys
 import pygame.mixer
-from qtpy.QtCore import Qt
+from qtpy.QtCore import Qt, QTimer
 from qtpy.QtGui import QFont
 from qtpy.QtWidgets import QApplication, QComboBox, QLabel, QPushButton
 from qtpy.QtWidgets import QVBoxLayout, QWidget
@@ -20,6 +20,7 @@ BLOCK = 0
 SUCCESS = True
 FAILURE = False
 
+DELAY = 5  # 2以上を指定(5: 500ミリ秒でREADYに)
 
 class Buzzer:
     def __init__(self):
@@ -29,9 +30,8 @@ class Buzzer:
                       FAILURE: pygame.mixer.Sound('sound/not_in_time.wav')}
 
     def ring(self, status):
-        self.sound[status].play()
-        while pygame.mixer.get_busy():
-            time.sleep(0.1)
+        if not pygame.mixer.get_busy():
+            self.sound[status].play()
 
 
 class GUI(QWidget):
@@ -54,7 +54,6 @@ class GUI(QWidget):
                        in self.roster.courses.items()]
         self.cb1 = QComboBox(self)
         self.cb1.addItems(cbox_labels)
-        self.cb1.activated[str].connect(self.activated)
         self.mylayout.addWidget(self.cb1)        
         
         # ラベル
@@ -74,9 +73,15 @@ class GUI(QWidget):
         # ブザー
         self.buzzer = Buzzer()
  
-    def activated(self, text):
-        idx = self.cb1.currentIndex()  # 現在のコンボボックスの選択番号
-        print('%d %s' % (idx, text))
+        # タイマー(100ミリ秒ごとのインタバルタイマ)
+        self.timer = QTimer()
+        self.timer.setSingleShot(False)
+        self.timer.setInterval(100)
+        self.timer.timeout.connect(self.on_timer)
+        self.cnt = DELAY
+        self.blocked = False
+        self.last_student_id = ''
+        self.timer.start()
                    
     def b1_callback(self):
         if self.stat != 'IDLE':
@@ -113,6 +118,9 @@ class GUI(QWidget):
 
     def check_in(self, student_id):
         ok, msg = self.roster.check_in(student_id)
+        if self.last_student_id == student_id:
+            return
+        self.last_student_id = student_id
         if ok:
             timestamp = datetime.datetime.now().strftime('%H:%M:%S')
             self.l1_change(f'{timestamp}\n{msg}')
@@ -123,6 +131,18 @@ class GUI(QWidget):
         else:
             self.l1_change(msg)
             self.buzzer.ring(FAILURE)
+
+    def on_timer(self):
+        if self.blocked == False:
+            self.blocked = True
+            self.cnt = DELAY
+        elif self.cnt == 0:
+                return
+        else:
+            self.cnt = self.cnt - 1
+            if self.cnt == 0:
+                self.l1_change('READY')  # カードが見えないときはREADYに強制
+                self.last_student_id = ''
 
 
 def get_student_id(tag):
@@ -139,14 +159,15 @@ def nfc_detected(tag):
 def nfc_thread():
     time.sleep(1)
     while True:
-        ui.l1_change('READY')  # Qtラベルの変更
+        while ui.blocked == False:
+            time.sleep(0.05)
         try:
             with nfc.ContactlessFrontend('usb') as clf:
                 clf.connect(rdwr={'on-connect': nfc_detected})
         except Exception as e:
             print(str(e))
             ui.buzzer.ring(FAILURE)
-        time.sleep(1)
+        ui.blocked = False
 
 
 if __name__ == '__main__':

@@ -33,8 +33,9 @@ class Roster:
             self.logger.warning('unregistered student: %s', student_id)
             return False, f'未登録の学生\n{student_id}'
         elif student_id in self.present:
+            student_class_no, student_name = self.students[student_id]
             self.logger.warning('already checked in: %s', student_id)
-            return False, f'チェックイン済み\n{student_id}'
+            return False, f'チェックイン済み\n{student_class_no}\n{student_name}'
         else:
             self.present.add(student_id)
             student_class_no, student_name = self.students[student_id]
