@@ -5,9 +5,9 @@ os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
  
 import datetime
 import logging
+import sys
 import threading
 import time
-import sys
 import pygame.mixer
 from qtpy.QtCore import Qt, QTimer
 from qtpy.QtGui import QFont
@@ -78,7 +78,7 @@ class GUI(QWidget):
         self.mylayout.addWidget(self.l1)
  
         # ボタン
-        self.b1 = QPushButton('受付開始',self)
+        self.b1 = QPushButton('受付開始', self)
         self.b1.setStyleSheet('background-color: darkblue;'
                               'color: white; font-size: 32pt')
         self.b1.clicked.connect(self.b1_callback)        
@@ -129,10 +129,10 @@ class GUI(QWidget):
 
     def check_in(self, student_id):
         '''Checks in a student.'''
-        ok, msg = self.roster.check_in(student_id)
         if self.last_student_id == student_id:
             return
         self.last_student_id = student_id
+        ok, msg = self.roster.check_in(student_id)
         if ok:
             timestamp = datetime.datetime.now().strftime('%H:%M:%S')
             self.l1_change(f'{timestamp}\n{msg}')
@@ -143,7 +143,7 @@ class GUI(QWidget):
             self.buzzer.ring(FAILURE)
 
     def on_timer(self):
-        if self.blocked == False:
+        if not self.blocked:
             self.blocked = True
             self.wait = DELAY
         elif self.wait > 0:
@@ -169,7 +169,7 @@ def nfc_detected(tag):
 def nfc_thread():
     time.sleep(1)
     while True:
-        while ui.blocked == False:
+        while not ui.blocked:
             time.sleep(0.05)
         try:
             with nfc.ContactlessFrontend('usb') as clf:
