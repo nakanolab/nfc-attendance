@@ -1,3 +1,5 @@
+'''Provides GUI for NFC-based attendance.'''
+
 import os
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
  
@@ -24,6 +26,7 @@ FAILURE = False
 DELAY = 5  # 2以上を指定(5: 500ミリ秒でREADYに)
 
 class Buzzer:
+    '''Plays two kinds of buzzer.'''
     def __init__(self):
         # 効果音のバッファサイズ変更（再生時のディレイを抑制）
         pygame.mixer.pre_init(22050, -16, 2, 512)
@@ -38,6 +41,14 @@ class Buzzer:
 
 
 class GUI(QWidget):
+    '''GUI for choosing course and monitoring scans of NFC ID cards.
+
+    Attributes (other than Qt objects):
+        roster: A Roster object.
+        buzzer: A Buzzer object.
+        last_student_id, blocked, wait: Used to avoid repeated GUI refreshes
+            when an ID card is placed for prolonged period.
+    '''
     def __init__(self, parent=None):
         super(GUI, self).__init__(parent)       
         self.resize(600, 500)
@@ -87,6 +98,7 @@ class GUI(QWidget):
         self.timer.start()
                    
     def b1_callback(self):
+        '''Starts taking attendance.'''
         if self.stat != 'IDLE':
             self.roster.report_absent_students()
             exit()
@@ -116,6 +128,7 @@ class GUI(QWidget):
         self.b1.setText('受付終了 (%d/%d)' % (num_present, num_students))
 
     def check_in(self, student_id):
+        '''Checks in a student.'''
         ok, msg = self.roster.check_in(student_id)
         if self.last_student_id == student_id:
             return
@@ -141,6 +154,7 @@ class GUI(QWidget):
 
 
 def get_student_id(tag):
+    '''Extracts student ID from an NFC card.'''
     tag.polling(system_code=SYS_CODE)
     sc = nfc.tag.tt3.ServiceCode(SERVICE, 0x0b)
     bc = nfc.tag.tt3.BlockCode(BLOCK, service=0)
@@ -148,6 +162,7 @@ def get_student_id(tag):
     return data.decode('utf-8').lstrip('0').rstrip()[:-2]
 
 def nfc_detected(tag):
+    '''Extracts student ID from an NFC card and checks it in.'''
     student_id = get_student_id(tag)
     ui.check_in(student_id)
     

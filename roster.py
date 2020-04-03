@@ -1,3 +1,5 @@
+'''Provides a class and functions that handle enrollments and attendance.'''
+
 from collections import Counter
 from collections import defaultdict
 import csv
@@ -6,15 +8,35 @@ import logging
 import os.path
 import string
 
-RISYU_FILE = 'risyu.csv'
+RISYU_FILE = 'risyu.csv'  # Downloaded from KIT Inside.
 
 
 class Roster:
+    '''Stores info of enrolled students for all courses that one is in charge.
+
+    Attendance records are stored in the following file under log/ directory:
+        attendance-COURSE_CODE-YYYY-MM-DD.log
+
+    Attributes:
+        courses: Mapping from course code to course name.
+        all_students: For each course code, mapping from ID of enrolled student
+            to class No. and student name.
+        course_code: A particular course code that one is taking attendance for.
+        students (property): Mapping from student ID to class No. and student
+            name of the students who are enrolled in the particular course.
+            This becomes valid only after set_course_code() is called.
+        present: A set of student IDs who attended the course.
+    '''
+
     def __init__(self):
         self.courses, self.all_students = load_risyu(RISYU_FILE)
         self.present = set()
 
     def set_course_code(self, course_code):
+        '''Sets course code that one is taking attendance for.
+
+        If the log file exists, adds students whose ID card is already scanned.
+        '''
         student_ids = replay_log(course_code)
         setup_logging(course_code)
         self.logger = logging.getLogger()
@@ -38,6 +60,12 @@ class Roster:
         return self.all_students[self.course_code]
 
     def check_in(self, student_id):
+        '''Checks in an enrolled student.
+
+        Returns:
+            A tuple of whether it is a new legit check-in and some informative
+            message for showing in the GUI.
+        '''
         if student_id not in self.students:
             self.logger.warning('unregistered student: %s', student_id)
             return False, f'未登録の学生\n{student_id}'
@@ -53,6 +81,7 @@ class Roster:
             return True, f'{student_class_no}\n{student_name}'
 
     def report_absent_students(self):
+        '''Writes to the log file a list of absent students.'''
         self.logger.info('======== 欠席者リスト ========')
         for student_id in self.students:
             if student_id not in self.present:
@@ -62,6 +91,8 @@ class Roster:
 
 
 def load_risyu(filename):
+    '''Reads a specifically formatted CSV file of enrollment info of courses.
+    '''
     index = {c: i for i, c in enumerate(string.ascii_uppercase)}
     courses = {}
     roster = defaultdict(dict)
@@ -86,6 +117,12 @@ def get_log_filename(course_code):
     return f'log/attendance-{course_code}-{date}.log'
 
 def replay_log(course_code):
+    '''Reads today's log file of the course, if exists, and collects attendance
+    records.
+
+    Returns:
+        A list of student IDs that were already scanned.
+    '''
     filename = get_log_filename(course_code)
     student_ids = []
     if os.path.isfile(filename):
@@ -97,6 +134,7 @@ def replay_log(course_code):
     return student_ids
 
 def setup_logging(course_code):
+    '''Redirects log messages to log file and to stdout.'''
     format_ = '%(asctime)s %(name)-8s %(levelname)-8s %(message)s'
     logging.basicConfig(level=logging.INFO,
                         format=format_, datefmt='%m/%d %H:%M',
@@ -109,6 +147,7 @@ def setup_logging(course_code):
     logging.getLogger('nfc.clf').setLevel(logging.WARNING)  # to silence NFC log
 
 def dump():
+    '''Prints what's in the CSV file.'''
     courses, roster = load_risyu(RISYU_FILE)
     for course_code, course_name in courses.items():
         print(f'{course_code}: {course_name}')
