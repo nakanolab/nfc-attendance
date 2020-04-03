@@ -85,8 +85,11 @@ class Roster:
         self.logger.info('======== 欠席者リスト ========')
         for student_id in self.students:
             if student_id not in self.present:
-                class_no, name, seqno = self.students[student_id]
-                self.logger.warning('absent: [%s] %s %s', seqno, class_no, name)
+                student_class_no, student_name, student_seqno = \
+                    self.students[student_id]
+                self.logger.warning('absent: [%s] %s %s', student_seqno,
+                                                          student_class_no,
+                                                          student_name)
 
 
 def load_risyu(filename):
@@ -102,7 +105,7 @@ def load_risyu(filename):
                 continue
             course_code = row[index['F']]
             course_name = row[index['G']].strip()
-            student_seqno = row[index['R']]
+            student_seqno = row[index['R']].lstrip('0')
             student_id = row[index['S']]
             student_class_no = row[index['T']]
             student_class_no = '%s-%d' % (student_class_no[:4],
