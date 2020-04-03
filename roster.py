@@ -20,11 +20,11 @@ class Roster:
     Attributes:
         courses: Mapping from course code to course name.
         all_students: For each course code, mapping from ID of enrolled student
-            to class No. and student name.
+            to class No., student name, and sequence No.
         course_code: A particular course code that one is taking attendance for.
-        students (property): Mapping from student ID to class No. and student
-            name of the students who are enrolled in the particular course.
-            This becomes valid only after set_course_code() is called.
+        students (property): Mapping from student ID to class No., student name,
+            and sequence No. of the students who are enrolled in the particular
+            course. This becomes valid only after set_course_code() is called.
         present: A set of student IDs who attended the course.
     '''
 
@@ -42,7 +42,7 @@ class Roster:
         self.logger = logging.getLogger()
         self.course_code = course_code
         classes = []
-        for student_class_no, _ in self.students.values():
+        for student_class_no, _, _ in self.students.values():
             classes.append(student_class_no[:student_class_no.index('-')])
         class_count = Counter(classes)
         self.logger.info('========= クラス人数 =========')
@@ -51,7 +51,7 @@ class Roster:
         # replay log file
         for student_id in student_ids:
             self.present.add(student_id)
-            student_class_no, student_name = self.students[student_id]
+            student_class_no, student_name, _ = self.students[student_id]
             self.logger.info('[log replay] added %s %s %s',
                              student_id, student_class_no, student_name)
 
@@ -70,12 +70,12 @@ class Roster:
             self.logger.warning('unregistered student: %s', student_id)
             return False, f'未登録の学生\n{student_id}'
         elif student_id in self.present:
-            student_class_no, student_name = self.students[student_id]
+            student_class_no, student_name, _ = self.students[student_id]
             self.logger.warning('already checked in: %s', student_id)
             return False, f'チェックイン済\n{student_class_no}\n{student_name}'
         else:
             self.present.add(student_id)
-            student_class_no, student_name = self.students[student_id]
+            student_class_no, student_name, _ = self.students[student_id]
             self.logger.info('added %s %s %s',
                              student_id, student_class_no, student_name)
             return True, f'{student_class_no}\n{student_name}'
@@ -85,9 +85,8 @@ class Roster:
         self.logger.info('======== 欠席者リスト ========')
         for student_id in self.students:
             if student_id not in self.present:
-                student_class_no, student_name = self.students[student_id]
-                self.logger.warning('absent: %s %s %s',
-                                    student_id, student_class_no, student_name)
+                class_no, name, seqno = self.students[student_id]
+                self.logger.warning('absent: [%s] %s %s', seqno, class_no, name)
 
 
 def load_risyu(filename):
@@ -103,13 +102,16 @@ def load_risyu(filename):
                 continue
             course_code = row[index['F']]
             course_name = row[index['G']].strip()
+            student_seqno = row[index['R']]
             student_id = row[index['S']]
             student_class_no = row[index['T']]
             student_class_no = '%s-%d' % (student_class_no[:4],
                                           int(student_class_no[4:]))
             student_name = row[index['U']].strip().replace('\u3000', ' ')
             courses[course_code] = course_name
-            roster[course_code][student_id] = (student_class_no, student_name)
+            roster[course_code][student_id] = (student_class_no,
+                                               student_name,
+                                               student_seqno)
     return courses, roster
 
 def get_log_filename(course_code):
