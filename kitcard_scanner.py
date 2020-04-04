@@ -115,7 +115,7 @@ class GUI(QWidget):
                               'color: white; font-size: 32pt')
         
         # NFCカードリーダスレッド開始
-        th_nfc = threading.Thread(target=nfc_thread)
+        th_nfc = threading.Thread(target=nfc_thread, args=(self,))
         th_nfc.setDaemon(True) 
         th_nfc.start()
  
@@ -161,12 +161,10 @@ def get_student_id(tag):
     data = tag.read_without_encryption([sc], [bc])
     return data.decode('utf-8').lstrip('0').rstrip()[:-2]
 
-def nfc_detected(tag):
-    '''Extracts student ID from an NFC card and checks it in.'''
-    student_id = get_student_id(tag)
-    ui.check_in(student_id)
+def nfc_thread(ui):
+    def nfc_detected(tag):
+        ui.check_in(get_student_id(tag))
     
-def nfc_thread():
     time.sleep(1)
     while True:
         while not ui.blocked:
