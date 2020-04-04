@@ -19,11 +19,11 @@ import roster
 SYS_CODE = 0x93B1
 SERVICE = 64
 BLOCK = 0
+DELAY = 5  # 2以上を指定(5: 500ミリ秒でREADYに)
 
 SUCCESS = True
 FAILURE = False
 
-DELAY = 5  # 2以上を指定(5: 500ミリ秒でREADYに)
 
 class Buzzer:
     '''Plays two kinds of buzzer.'''
@@ -50,7 +50,7 @@ class GUI(QWidget):
             when an ID card is placed for prolonged period.
     '''
     def __init__(self, parent=None):
-        super(GUI, self).__init__(parent)       
+        super(GUI, self).__init__(parent)
         self.resize(600, 500)
         self.setWindowTitle('KIT-Card Reader')
         self.setFont(QFont('Helvetica', 24))
@@ -81,7 +81,7 @@ class GUI(QWidget):
         self.b1 = QPushButton('受付開始', self)
         self.b1.setStyleSheet('background-color: darkblue;'
                               'color: white; font-size: 32pt')
-        self.b1.clicked.connect(self.b1_callback)        
+        self.b1.clicked.connect(self.b1_callback)
         layout.addWidget(self.b1)
 
         # ブザー
@@ -107,17 +107,18 @@ class GUI(QWidget):
         self.cb1.setStyleSheet('background-color: gray;'
                                'color: white; font-size: 24pt')
         self.cb1.setEnabled(False)
-        course_code = list(self.roster.courses.keys())[idx]
+        course_code = list(self.roster.courses)[idx]
         self.roster.set_course_code(course_code)
+
         # ボタンラベル変更
         self.update_button_label()
         self.b1.setStyleSheet('background-color: maroon;'
                               'color: white; font-size: 32pt')
         
         # NFCカードリーダスレッド開始
-        th_nfc = threading.Thread(target=nfc_thread, args=(self,))
-        th_nfc.setDaemon(True) 
-        th_nfc.start()
+        t = threading.Thread(target=nfc_thread, args=(self,))
+        t.daemon = True
+        t.start()
  
     def l1_change(self, text):
         self.l1.setText(text)
@@ -185,5 +186,5 @@ if __name__ == '__main__':
     ui.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowTitleHint)
     ui.show()
     
-    # Windowイベント受付開始 
+    # Windowイベント受付開始
     sys.exit(app.exec_())
