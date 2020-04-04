@@ -96,7 +96,7 @@ class GUI(QWidget):
         self.blocked = False
         self.last_student_id = None
         self.timer.start()
-                   
+
     def b1_callback(self):
         '''Starts taking attendance.'''
         if self.state != 'IDLE':
@@ -116,9 +116,9 @@ class GUI(QWidget):
                               'color: white; font-size: 32pt')
         
         # NFCカードリーダスレッド開始
-        t = threading.Thread(target=nfc_thread, args=(self,))
-        t.daemon = True
-        t.start()
+        reader = threading.Thread(target=self.nfc_thread)
+        reader.daemon = True
+        reader.start()
  
     def l1_change(self, text):
         self.l1.setText(text)
@@ -143,6 +143,22 @@ class GUI(QWidget):
             self.l1_change(msg)
             self.buzzer.ring(FAILURE)
 
+    def nfc_thread(self):
+        def nfc_detected(tag):
+            self.check_in(get_student_id(tag))
+
+        time.sleep(1)
+        while True:
+            while not self.blocked:
+                time.sleep(0.05)
+            try:
+                with nfc.ContactlessFrontend('usb') as clf:
+                    clf.connect(rdwr={'on-connect': nfc_detected})
+            except Exception as e:
+                logging.error(str(e))
+                self.buzzer.ring(FAILURE)
+            self.blocked = False
+
     def on_timer(self):
         if not self.blocked:
             self.blocked = True
@@ -161,22 +177,6 @@ def get_student_id(tag):
     bc = nfc.tag.tt3.BlockCode(BLOCK, service=0)
     data = tag.read_without_encryption([sc], [bc])
     return data.decode('utf-8').lstrip('0').rstrip()[:-2]
-
-def nfc_thread(ui):
-    def nfc_detected(tag):
-        ui.check_in(get_student_id(tag))
-    
-    time.sleep(1)
-    while True:
-        while not ui.blocked:
-            time.sleep(0.05)
-        try:
-            with nfc.ContactlessFrontend('usb') as clf:
-                clf.connect(rdwr={'on-connect': nfc_detected})
-        except Exception as e:
-            logging.error(str(e))
-            ui.buzzer.ring(FAILURE)
-        ui.blocked = False
 
 
 if __name__ == '__main__':
