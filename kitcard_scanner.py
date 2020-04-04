@@ -71,8 +71,8 @@ class GUI(QWidget):
         layout.addWidget(self.cb1)
         
         # ラベル
-        self.stat = 'IDLE'
-        self.l1 = QLabel(self.stat)
+        self.state = 'IDLE'
+        self.l1 = QLabel(self.state)
         self.l1.setAlignment(Qt.AlignCenter)
         self.l1.setStyleSheet('color: black; font-size: 64pt')
         layout.addWidget(self.l1)
@@ -99,10 +99,10 @@ class GUI(QWidget):
                    
     def b1_callback(self):
         '''Starts taking attendance.'''
-        if self.stat != 'IDLE':
+        if self.state != 'IDLE':
             self.roster.report_absent_students()
             exit()
-        self.stat = 'RUNNING'
+        self.state = 'RUNNING'
         idx = self.cb1.currentIndex()  # 現在のコンボボックスの選択番号
         self.cb1.setStyleSheet('background-color: gray;'
                                'color: white; font-size: 24pt')
