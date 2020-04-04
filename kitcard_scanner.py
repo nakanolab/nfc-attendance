@@ -59,8 +59,8 @@ class GUI(QWidget):
         self.roster = roster.Roster()
 
         # 空の縦レイアウトを作る
-        self.mylayout = QVBoxLayout()
-        self.setLayout(self.mylayout)
+        layout = QVBoxLayout()
+        self.setLayout(layout)
         
         # コンボボックス
         cbox_labels = [f'{course_code} {course_name}'
@@ -68,21 +68,21 @@ class GUI(QWidget):
                        in self.roster.courses.items()]
         self.cb1 = QComboBox(self)
         self.cb1.addItems(cbox_labels)
-        self.mylayout.addWidget(self.cb1)        
+        layout.addWidget(self.cb1)
         
         # ラベル
         self.stat = 'IDLE'
         self.l1 = QLabel(self.stat)
         self.l1.setAlignment(Qt.AlignCenter)
         self.l1.setStyleSheet('color: black; font-size: 64pt')
-        self.mylayout.addWidget(self.l1)
+        layout.addWidget(self.l1)
  
         # ボタン
         self.b1 = QPushButton('受付開始', self)
         self.b1.setStyleSheet('background-color: darkblue;'
                               'color: white; font-size: 32pt')
         self.b1.clicked.connect(self.b1_callback)        
-        self.mylayout.addWidget(self.b1)
+        layout.addWidget(self.b1)
 
         # ブザー
         self.buzzer = Buzzer()
