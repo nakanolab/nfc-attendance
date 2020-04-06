@@ -19,11 +19,11 @@ import roster
 SYS_CODE = 0x93B1
 SERVICE = 64
 BLOCK = 0
+DELAY = 5  # 2以上を指定(5: 500ミリ秒でREADYに)
 
 SUCCESS = True
 FAILURE = False
 
-DELAY = 5  # 2以上を指定(5: 500ミリ秒でREADYに)
 
 class Buzzer:
     '''Plays two kinds of buzzer.'''
@@ -50,7 +50,7 @@ class GUI(QWidget):
             when an ID card is placed for prolonged period.
     '''
     def __init__(self, parent=None):
-        super(GUI, self).__init__(parent)       
+        super(GUI, self).__init__(parent)
         self.resize(600, 500)
         self.setWindowTitle('KIT-Card Reader')
         self.setFont(QFont('Helvetica', 24))
@@ -59,8 +59,8 @@ class GUI(QWidget):
         self.roster = roster.Roster()
 
         # 空の縦レイアウトを作る
-        self.mylayout = QVBoxLayout()
-        self.setLayout(self.mylayout)
+        layout = QVBoxLayout()
+        self.setLayout(layout)
         
         # コンボボックス
         cbox_labels = [f'{course_code} {course_name}'
@@ -68,21 +68,21 @@ class GUI(QWidget):
                        in self.roster.courses.items()]
         self.cb1 = QComboBox(self)
         self.cb1.addItems(cbox_labels)
-        self.mylayout.addWidget(self.cb1)        
+        layout.addWidget(self.cb1)
         
         # ラベル
-        self.stat = 'IDLE'
-        self.l1 = QLabel(self.stat)
+        self.state = 'IDLE'
+        self.l1 = QLabel(self.state)
         self.l1.setAlignment(Qt.AlignCenter)
         self.l1.setStyleSheet('color: black; font-size: 64pt')
-        self.mylayout.addWidget(self.l1)
+        layout.addWidget(self.l1)
  
         # ボタン
         self.b1 = QPushButton('受付開始', self)
         self.b1.setStyleSheet('background-color: darkblue;'
                               'color: white; font-size: 32pt')
-        self.b1.clicked.connect(self.b1_callback)        
-        self.mylayout.addWidget(self.b1)
+        self.b1.clicked.connect(self.b1_callback)
+        layout.addWidget(self.b1)
 
         # ブザー
         self.buzzer = Buzzer()
@@ -96,28 +96,29 @@ class GUI(QWidget):
         self.blocked = False
         self.last_student_id = None
         self.timer.start()
-                   
+
     def b1_callback(self):
         '''Starts taking attendance.'''
-        if self.stat != 'IDLE':
+        if self.state != 'IDLE':
             self.roster.report_absent_students()
             exit()
-        self.stat = 'RUNNING'
+        self.state = 'RUNNING'
         idx = self.cb1.currentIndex()  # 現在のコンボボックスの選択番号
         self.cb1.setStyleSheet('background-color: gray;'
                                'color: white; font-size: 24pt')
         self.cb1.setEnabled(False)
-        course_code = list(self.roster.courses.keys())[idx]
+        course_code = list(self.roster.courses)[idx]
         self.roster.set_course_code(course_code)
+
         # ボタンラベル変更
         self.update_button_label()
         self.b1.setStyleSheet('background-color: maroon;'
                               'color: white; font-size: 32pt')
         
         # NFCカードリーダスレッド開始
-        th_nfc = threading.Thread(target=nfc_thread)
-        th_nfc.setDaemon(True) 
-        th_nfc.start()
+        reader = threading.Thread(target=self.nfc_thread)
+        reader.daemon = True
+        reader.start()
  
     def l1_change(self, text):
         self.l1.setText(text)
@@ -142,6 +143,22 @@ class GUI(QWidget):
             self.l1_change(msg)
             self.buzzer.ring(FAILURE)
 
+    def nfc_thread(self):
+        def nfc_detected(tag):
+            self.check_in(get_student_id(tag))
+
+        time.sleep(1)
+        while True:
+            while not self.blocked:
+                time.sleep(0.05)
+            try:
+                with nfc.ContactlessFrontend('usb') as clf:
+                    clf.connect(rdwr={'on-connect': nfc_detected})
+            except Exception as e:
+                logging.error(str(e))
+                self.buzzer.ring(FAILURE)
+            self.blocked = False
+
     def on_timer(self):
         if not self.blocked:
             self.blocked = True
@@ -161,24 +178,6 @@ def get_student_id(tag):
     data = tag.read_without_encryption([sc], [bc])
     return data.decode('utf-8').lstrip('0').rstrip()[:-2]
 
-def nfc_detected(tag):
-    '''Extracts student ID from an NFC card and checks it in.'''
-    student_id = get_student_id(tag)
-    ui.check_in(student_id)
-    
-def nfc_thread():
-    time.sleep(1)
-    while True:
-        while not ui.blocked:
-            time.sleep(0.05)
-        try:
-            with nfc.ContactlessFrontend('usb') as clf:
-                clf.connect(rdwr={'on-connect': nfc_detected})
-        except Exception as e:
-            logging.error(str(e))
-            ui.buzzer.ring(FAILURE)
-        ui.blocked = False
-
 
 if __name__ == '__main__':
     # ウィンドウ準備
@@ -187,5 +186,5 @@ if __name__ == '__main__':
     ui.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowTitleHint)
     ui.show()
     
-    # Windowイベント受付開始 
+    # Windowイベント受付開始
     sys.exit(app.exec_())

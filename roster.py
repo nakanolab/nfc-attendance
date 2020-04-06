@@ -87,9 +87,9 @@ class Roster:
             if student_id not in self.present:
                 student_class_no, student_name, student_seqno = \
                     self.students[student_id]
-                self.logger.warning('absent: [%s] %s %s', student_seqno,
-                                                          student_class_no,
-                                                          student_name)
+                self.logger.info('absent: [%s] %s %s', student_seqno,
+                                                       student_class_no,
+                                                       student_name)
 
 
 def load_risyu(filename):
